@@ -1,0 +1,67 @@
+spring:
+  main:
+    web-application-type: none   # Standalone client — no embedded HTTP server
+
+coinbase:
+  prime:
+    websocket-uri: wss://ws-feed.prime.coinbase.com
+    access-key: ${ACCESS_KEY:}
+    api-key-id: efe0af0a-47e9-5607-82e4-e83e1a469847
+    passphrase: ${PASSPHRASE:}
+    secret-key: ${SIGNING_KEY:}
+    portfolio-id: ${PORTFOLIO_ID:}
+    product-ids:
+      - BTC-USD
+      - ETH-USD
+      - ETH-BTC
+      - SOL-USD
+      - XRP-USD
+      - DOGE-USD
+      - ADA-USD
+      - MATIC-USD
+      - AVAX-USD
+      - DOT-USD
+      - LINK-USD
+      - UNI-USD
+      - ATOM-USD
+      - LTC-USD
+      - BCH-USD
+      - NEAR-USD
+      - ONDO-USD
+      - WLD-USD
+      - PEPE-USD
+      - SHIB-USD
+      - APT-USD
+      - ARB-USD
+      - OP-USD
+      - IMX-USD
+      - AAVE-USD
+      - ENJ-USD
+      - ENJ-BTC
+      - AAVE-BTC
+      - FIL-USD
+      - ICP-USD
+      - VET-USD
+      - ALGO-USD
+      - XLM-USD
+      - EOS-USD
+      - TRX-USD
+      - SAND-USD
+      - MANA-USD
+      - AXS-USD
+      - CHZ-USD
+      - CRV-USD
+      - COMP-USD
+      - MKR-USD
+      - SNX-USD
+      - YFI-USD
+      - STX-USD
+      - GRT-USD
+      - SUSHI-USD
+      - 1INCH-USD
+      - BAL-USD
+      - LRC-USD
+    reconnect-initial-delay-ms: 1000
+    reconnect-max-delay-ms: 60000
+    # -1 = unlimited reconnect attempts
+    max-reconnect-attempts: -1
