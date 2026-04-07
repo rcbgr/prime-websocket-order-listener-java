@@ -60,7 +60,7 @@ com.coinbase.prime.samples
 │   └── FeeDetails                   # Nested fee breakdown within an Order
 ├── service/
 │   ├── SignatureService             # HMAC-SHA256 signing for subscribe/unsubscribe messages
-│   ├── OrderQueueService            # LinkedBlockingQueue<Order>(5 000) — shared bounded buffer
+│   ├── OrderQueueService            # LinkedBlockingQueue<Order>(5 000) — shared bounded buffer; enqueue() returns boolean for back-pressure
 │   └── PrimeMessageProcessor        # Core business logic (sequence tracking, routing, reconnect trigger)
 │                                    # NOT a Spring bean — one instance per PrimeConnectionWorker
 ├── websocket/
@@ -109,7 +109,7 @@ Each `PrimeConnectionWorker` runs a connection loop on a dedicated virtual threa
 3. Sets status to `CONNECTED`, resets sequence numbers, sends signed `subscribe` frames for `heartbeats` then `orders`.
 4. Schedules a 30-second ping via `ScheduledThreadPoolExecutor`.
 5. Awaits `endpoint.getCloseFuture()` — a `CompletableFuture<Void>` that completes in `@OnClose` or `@OnError`.
-6. Attributes the failure reason (processor-triggered → sequence gap / server error; transport error → WebSocket error; otherwise → connection closed), records it in `ConnectionHealth`, then loops back with exponential back-off (initial 1 s, doubles to max 60 s).
+6. Attributes the failure reason (processor-triggered → sequence gap / server error; transport error → WebSocket error; otherwise → connection closed), records it in `ConnectionHealth`, then loops back with exponential back-off (initial 1 s, doubles to max 10 s). When the close reason is a queue-full, an additional 3-second pause is inserted before back-off resets, to allow the consumer to drain.
 
 On Ctrl-C, Spring calls `PrimeConnectionManager.destroy()` which: releases the `CountDownLatch`, then calls `shutdown()` on each worker. Each worker sends `unsubscribe` frames, closes its session, and joins its loop thread.
 
@@ -121,6 +121,7 @@ On Ctrl-C, Spring calls `PrimeConnectionManager.destroy()` which: releases the `
 | Unexpected session close | Tyrus `@OnClose` | `"connection closed"` |
 | Server-sent `{"type":"error"}` frame | `PrimeMessageProcessor` | `"server error: <message>"` |
 | Sequence gap (received > expected+1) | `PrimeMessageProcessor` | `"sequence gap (dropped=N)"` |
+| Order queue full | `PrimeMessageProcessor` | `"queue full (capacity=5000)"` — also triggers a 3 s pause before reconnect |
 | `connectToServer()` throws | Tyrus | `"connect failed: <message>"` |
 
 The reconnect callback is a `Consumer<String>` (not a `Runnable`) so the failure reason is passed through and recorded in `ConnectionHealth`.
@@ -150,7 +151,7 @@ Connection health report (5 connection(s)):
   Worker 1  [LINK-USD,...]          status=CONNECTED    failures=0
 ```
 
-`FailureType.from(String)` is the single classification point — all call sites go through it. Categories: `SERVER_ERROR_SLOW_CONSUME`, `SERVER_ERROR_SLOW_READ`, `SEQUENCE_GAP`, `CONNECTION_RESET`, `TLS_ERROR`, `DISCONNECT_REQUESTED`, `MESSAGE_TOO_BIG`, `UNKNOWN`.
+`FailureType.from(String)` is the single classification point — all call sites go through it. Categories: `QUEUE_FULL`, `SERVER_ERROR_SLOW_CONSUME`, `SERVER_ERROR_SLOW_READ`, `SEQUENCE_GAP`, `CONNECTION_RESET`, `TLS_ERROR`, `DISCONNECT_REQUESTED`, `MESSAGE_TOO_BIG`, `UNKNOWN`.
 
 ### Order consumer log labels
 

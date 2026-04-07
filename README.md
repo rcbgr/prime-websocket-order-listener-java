@@ -15,7 +15,7 @@ Products are partitioned into groups of up to 10, with a dedicated WebSocket con
 - Automatic product partitioning — up to 10 products per connection, connections scaled to cover the full product list
 - Global sequence number validation per connection with automatic reconnect on gaps
 - Exponential back-off reconnection with configurable limits
-- Thread-safe bounded order queue (5,000 capacity) decoupling ingestion from processing
+- Thread-safe bounded order queue (5,000 capacity) with back-pressure: when full, the producing connection is closed and reconnects after 3 seconds
 - Periodic WebSocket ping frames to detect silent connection failures
 - Connection health monitoring — per-worker status, cumulative failure counts, and per-category breakdowns logged every 60 seconds
 - Clean shutdown on Ctrl-C — sends unsubscribe messages before closing
@@ -61,7 +61,7 @@ coinbase:
   prime:
     websocket-uri: wss://ws-feed.prime.coinbase.com
     reconnect-initial-delay-ms: 1000   # Initial back-off delay
-    reconnect-max-delay-ms: 60000      # Maximum back-off delay (doubles each attempt)
+    reconnect-max-delay-ms: 10000      # Maximum back-off delay (doubles each attempt)
     max-reconnect-attempts: -1         # -1 = unlimited
 ```
 

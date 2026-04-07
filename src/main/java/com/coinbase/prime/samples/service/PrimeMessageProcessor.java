@@ -200,7 +200,12 @@ public class PrimeMessageProcessor {
             for (JsonNode orderNode : ordersNode) {
                 try {
                     Order order = objectMapper.treeToValue(orderNode, Order.class);
-                    orderQueueService.enqueue(order);
+                    if (!orderQueueService.enqueue(order)) {
+                        log.warn("Order queue full (capacity={}) — disconnecting to apply back-pressure",
+                                OrderQueueService.QUEUE_CAPACITY);
+                        triggerReconnect("queue full (capacity=" + OrderQueueService.QUEUE_CAPACITY + ")");
+                        return; // Stop processing; reconnect has been triggered
+                    }
                     log.debug("Enqueued order: orderId={} productId={} status={}",
                             order.getOrderId(), order.getProductId(), order.getStatus());
                 } catch (Exception e) {

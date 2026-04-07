@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -78,6 +79,8 @@ class PrimeMessageProcessorTest {
 
     @Test
     void processMessage_orders_enqueueSingleOrder() {
+        when(orderQueueService.enqueue(any(Order.class))).thenReturn(true);
+
         boolean result = processor.processMessage(ordersSnapshotJson(0, "ord-1", "BTC-USD", "buy"));
 
         assertThat(result).isTrue();
@@ -91,6 +94,8 @@ class PrimeMessageProcessorTest {
 
     @Test
     void processMessage_orders_enqueueMultipleOrdersInSingleEvent() {
+        when(orderQueueService.enqueue(any(Order.class))).thenReturn(true);
+
         String json = """
                 {
                   "channel": "orders",
@@ -113,6 +118,18 @@ class PrimeMessageProcessorTest {
         processor.processMessage(json);
 
         verify(orderQueueService, times(2)).enqueue(any(Order.class));
+    }
+
+    @Test
+    void processMessage_orders_triggersReconnectWhenQueueFull() {
+        when(orderQueueService.enqueue(any(Order.class))).thenReturn(false);
+
+        // processMessage still returns true (handler exits early via return, not via the
+        // boolean signal used for sequence gaps); the reconnect is fired via the callback.
+        boolean result = processor.processMessage(ordersSnapshotJson(0, "ord-1", "BTC-USD", "buy"));
+
+        assertThat(result).isTrue();
+        assertThat(reconnectCalled).isTrue();
     }
 
     // -------------------------------------------------------------------------

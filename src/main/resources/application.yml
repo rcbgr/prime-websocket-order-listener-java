@@ -62,6 +62,6 @@ coinbase:
       - BAL-USD
       - LRC-USD
     reconnect-initial-delay-ms: 1000
-    reconnect-max-delay-ms: 60000
+    reconnect-max-delay-ms: 10000
     # -1 = unlimited reconnect attempts
     max-reconnect-attempts: -1

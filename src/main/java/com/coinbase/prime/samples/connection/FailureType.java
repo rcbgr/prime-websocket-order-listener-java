@@ -46,6 +46,9 @@ enum FailureType {
     /** Incoming WebSocket frame exceeded the configured maximum message size. */
     MESSAGE_TOO_BIG,
 
+    /** Order queue was at capacity; the connection was closed to apply back-pressure. */
+    QUEUE_FULL,
+
     /** Any failure that does not match a more specific category. */
     UNKNOWN;
 
@@ -59,6 +62,7 @@ enum FailureType {
         if (reason == null) return UNKNOWN;
         String lower = reason.toLowerCase();
 
+        if (lower.contains("queue full"))                              return QUEUE_FULL;
         if (lower.contains("sequence gap"))                           return SEQUENCE_GAP;
         if (lower.contains("errslowconsume") ||
                 lower.contains("slow consume"))                       return SERVER_ERROR_SLOW_CONSUME;

@@ -17,8 +17,6 @@
 package com.coinbase.prime.samples.service;
 
 import com.coinbase.prime.samples.model.Order;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -29,27 +27,24 @@ import java.util.concurrent.TimeUnit;
  * WebSocket message handler (producer) and the
  * {@link com.coinbase.prime.samples.consumer.OrderConsumer} (consumer).
  *
- * <p>Capacity is fixed at 5,000 entries.  When full, new orders are dropped
- * with a warning log rather than blocking the WebSocket message thread.
+ * <p>Capacity is fixed at 5,000 entries. When full, {@link #enqueue} returns
+ * {@code false} without blocking so the caller can apply back-pressure
+ * (e.g. disconnect the WebSocket and reconnect after the consumer drains).
  */
 @Service
 public class OrderQueueService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderQueueService.class);
 
     static final int QUEUE_CAPACITY = 5_000;
 
     private final LinkedBlockingQueue<Order> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
 
     /**
-     * Enqueue an order without blocking.  Drops the order and logs a warning
-     * if the queue has reached capacity.
+     * Enqueue an order without blocking.
+     *
+     * @return {@code true} if the order was accepted; {@code false} if the queue is full
      */
-    public void enqueue(Order order) {
-        if (!queue.offer(order)) {
-            log.warn("Order queue full (capacity={}), dropping order: orderId={}",
-                    QUEUE_CAPACITY, order.getOrderId());
-        }
+    public boolean enqueue(Order order) {
+        return queue.offer(order);
     }
 
     /**

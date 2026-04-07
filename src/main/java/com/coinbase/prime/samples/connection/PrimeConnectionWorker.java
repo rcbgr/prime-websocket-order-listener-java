@@ -230,6 +230,17 @@ class PrimeConnectionWorker {
                 health.recordFailure(FailureType.from(reason), reason);
                 log.info("[Worker {}] Session closed (reason='{}') — will reconnect", workerId, reason);
 
+                // When the queue was full, pause to let the consumer drain before reconnecting.
+                if (reason.contains("queue full")) {
+                    log.info("[Worker {}] Queue full — waiting 3 s for consumer to drain", workerId);
+                    try {
+                        Thread.sleep(3_000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+
                 // Reset back-off after a successful connection
                 delayMs  = props.getReconnectInitialDelayMs();
                 attempts = 0;

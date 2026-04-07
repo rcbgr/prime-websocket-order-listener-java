@@ -50,13 +50,14 @@ class OrderQueueServiceTest {
     }
 
     @Test
-    void enqueue_dropsOrdersWhenFull() {
+    void enqueue_returnsFalseWhenFull() {
         for (int i = 0; i < OrderQueueService.QUEUE_CAPACITY; i++) {
-            queue.enqueue(orderWithId("ord-" + i));
+            assertThat(queue.enqueue(orderWithId("ord-" + i))).isTrue();
         }
         assertThat(queue.remainingCapacity()).isZero();
 
-        queue.enqueue(orderWithId("dropped"));
+        boolean accepted = queue.enqueue(orderWithId("overflow"));
+        assertThat(accepted).isFalse();
         assertThat(queue.size()).isEqualTo(OrderQueueService.QUEUE_CAPACITY);
     }
 
